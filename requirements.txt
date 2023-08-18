@@ -1,6 +1,6 @@
 argparse
 gym
-box2d
+box2d-py
 tqdm
 numpy
 torchvision
