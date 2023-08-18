@@ -71,12 +71,11 @@ class _RolloutDataset(torch.utils.data.Dataset): # pylint: disable=too-few-publi
         # binary search through cum_size
         while True:
             number=np.random.randint(0,self._cum_size[-1])
-
             i=number
             file_index = bisect(self._cum_size, i) - 1
             seq_index = i - self._cum_size[file_index]
             data = self._buffer[file_index]
-            safes = data['labels'][seq_index ][self.leng]
+            safes = data['labels'][seq_index + self._seq_len][self.leng]
             if safes!=self.safeCache:
                 self.safeCache=safes
                 # print(safes)

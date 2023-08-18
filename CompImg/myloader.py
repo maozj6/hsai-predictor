@@ -11,7 +11,6 @@ class _RolloutDataset(torch.utils.data.Dataset): # pylint: disable=too-few-publi
     def __init__(self, root, buffer_size=0, leng=0): # pylint: disable=too-many-arguments
         self.leng=leng
         self._files=[]
-        self.safeCache=0
         for sd in listdir(root):
             if isdir(join(root, sd)):
                 for ssd in listdir(root+sd):
@@ -69,19 +68,9 @@ class _RolloutDataset(torch.utils.data.Dataset): # pylint: disable=too-few-publi
 
     def __getitem__(self, i):
         # binary search through cum_size
-        while True:
-            number=np.random.randint(0,self._cum_size[-1])
-
-            i=number
-            file_index = bisect(self._cum_size, i) - 1
-            seq_index = i - self._cum_size[file_index]
-            data = self._buffer[file_index]
-            safes = data['labels'][seq_index ][self.leng]
-            if safes!=self.safeCache:
-                self.safeCache=safes
-                # print(safes)
-                break
-
+        file_index = bisect(self._cum_size, i) - 1
+        seq_index = i - self._cum_size[file_index]
+        data = self._buffer[file_index]
         return self._get_data(data, seq_index)
 
     def _get_data(self, data, seq_index):
@@ -90,113 +79,8 @@ class _RolloutDataset(torch.utils.data.Dataset): # pylint: disable=too-few-publi
     def _data_per_sequence(self, data_length):
         pass
 
-class RandomRolloutSequenceDataset(_RolloutDataset): # pylint: disable=too-few-public-methods
-
-
-    def __init__(self, root, seq_len,leng=0): # pylint: disable=too-many-arguments
-        super().__init__(root)
-        self._seq_len = seq_len
-        self.leng=leng
-        self.cacheSafe=0
-
-    def _get_data(self, data, seq_index):
-        obs_data = data['observations'][seq_index:seq_index + self._seq_len + 1]
-        # obs_data = self._transform(obs_data.astype(np.float32))
-        obs, next_obs = obs_data[:-1], obs_data[1:]
-        action = data['actions'][seq_index+1:seq_index + self._seq_len + 1]
-        action = action.astype(np.float32)
-        safes = data['labels'][seq_index + self._seq_len ][self.leng]
-        # reward, terminal = [data[key][seq_index+1:
-        #                               seq_index + self._seq_len + 1].astype(np.float32)
-        #                     for key in ('rewards', 'terminals')]
-        # data is given in the form
-        # (obs, action, reward, terminal, next_obs)
-        return obs, action, next_obs,safes #, terminal, next_obs
-
-    def _data_per_sequence(self, data_length):
-        return data_length - self._seq_len
 
 class RolloutSequenceDataset(_RolloutDataset): # pylint: disable=too-few-public-methods
-    """ Encapsulates rollouts.
-
-    Rollouts should be stored in subdirs of the root directory, in the form of npz files,
-    each containing a dictionary with the keys:
-        - observations: (rollout_len, *obs_shape)
-        - actions: (rollout_len, action_size)
-        - rewards: (rollout_len,)
-        - terminals: (rollout_len,), boolean
-
-     As the dataset is too big to be entirely stored in rams, only chunks of it
-     are stored, consisting of a constant number of files (determined by the
-     buffer_size parameter).  Once built, buffers must be loaded with the
-     load_next_buffer method.
-
-    Data are then provided in the form of tuples (obs, action, reward, terminal, next_obs):
-    - obs: (seq_len, *obs_shape)
-    - actions: (seq_len, action_size)
-    - reward: (seq_len,)
-    - terminal: (seq_len,) boolean
-    - next_obs: (seq_len, *obs_shape)
-
-    NOTE: seq_len < rollout_len in moste use cases
-
-    :args root: root directory of data sequences
-    :args seq_len: number of timesteps extracted from each rollout
-    :args transform: transformation of the observations
-    :args train: if True, train data, else test
-    """
-    def __init__(self, root, seq_len,leng=0): # pylint: disable=too-many-arguments
-        super().__init__(root)
-        self._seq_len = seq_len
-        self.leng=leng
-
-    def _get_data(self, data, seq_index):
-        obs_data = data['observations'][seq_index:seq_index + self._seq_len + 1]
-        # obs_data = self._transform(obs_data.astype(np.float32))
-        obs, next_obs = obs_data[:-1], obs_data[1:]
-        action = data['actions'][seq_index+1:seq_index + self._seq_len + 1]
-        action = action.astype(np.float32)
-        safes = data['labels'][seq_index + self._seq_len ][self.leng]
-        # reward, terminal = [data[key][seq_index+1:
-        #                               seq_index + self._seq_len + 1].astype(np.float32)
-        #                     for key in ('rewards', 'terminals')]
-        # data is given in the form
-        # (obs, action, reward, terminal, next_obs)
-        return obs, action, next_obs,safes #, terminal, next_obs
-
-    def _data_per_sequence(self, data_length):
-        return data_length - self._seq_len
-
-class RolloutObservationDataset(_RolloutDataset): # pylint: disable=too-few-public-methods
-    """ Encapsulates rollouts.
-
-    Rollouts should be stored in subdirs of the root directory, in the form of npz files,
-    each containing a dictionary with the keys:
-        - observations: (rollout_len, *obs_shape)
-        - actions: (rollout_len, action_size)
-        - rewards: (rollout_len,)
-        - terminals: (rollout_len,), boolean
-
-     As the dataset is too big to be entirely stored in rams, only chunks of it
-     are stored, consisting of a constant number of files (determined by the
-     buffer_size parameter).  Once built, buffers must be loaded with the
-     load_next_buffer method.
-
-    Data are then provided in the form of images
-
-    :args root: root directory of data sequences
-    :args seq_len: number of timesteps extracted from each rollout
-    :args transform: transformation of the observations
-    :args train: if True, train data, else test
-    """
-    def _data_per_sequence(self, data_length):
-        return data_length
-
-    def _get_data(self, data, seq_index):
-        return (data['observations'][seq_index],data['labels'][seq_index][self.leng],data['actions'][seq_index])
-
-
-class RolloutSeqSafesDataset(_RolloutDataset): # pylint: disable=too-few-public-methods
     """ Encapsulates rollouts.
 
     Rollouts should be stored in subdirs of the root directory, in the form of npz files,
@@ -242,18 +126,65 @@ class RolloutSeqSafesDataset(_RolloutDataset): # pylint: disable=too-few-public-
         #                     for key in ('rewards', 'terminals')]
         # data is given in the form
         # (obs, action, reward, terminal, next_obs)
-        safe_pos=np.where(safes==1)
-        if  len(safe_pos[0])==0:
-            safe_pos=[[21]]
-        # print(safe_pos[0])
-        # print(safe_pos[0])
-        return obs, action, next_obs,safe_pos[0][-1] #, terminal, next_obs
+        return obs, action, next_obs,safes #, terminal, next_obs
 
     def _data_per_sequence(self, data_length):
         return data_length - self._seq_len
 
 
-class RolloutObservationSafeDataset(_RolloutDataset): # pylint: disable=too-few-public-methods
+class RolloutSequenceDataset2(_RolloutDataset): # pylint: disable=too-few-public-methods
+    """ Encapsulates rollouts.
+
+    Rollouts should be stored in subdirs of the root directory, in the form of npz files,
+    each containing a dictionary with the keys:
+        - observations: (rollout_len, *obs_shape)
+        - actions: (rollout_len, action_size)
+        - rewards: (rollout_len,)
+        - terminals: (rollout_len,), boolean
+
+     As the dataset is too big to be entirely stored in rams, only chunks of it
+     are stored, consisting of a constant number of files (determined by the
+     buffer_size parameter).  Once built, buffers must be loaded with the
+     load_next_buffer method.
+
+    Data are then provided in the form of tuples (obs, action, reward, terminal, next_obs):
+    - obs: (seq_len, *obs_shape)
+    - actions: (seq_len, action_size)
+    - reward: (seq_len,)
+    - terminal: (seq_len,) boolean
+    - next_obs: (seq_len, *obs_shape)
+
+    NOTE: seq_len < rollout_len in moste use cases
+
+    :args root: root directory of data sequences
+    :args seq_len: number of timesteps extracted from each rollout
+    :args transform: transformation of the observations
+    :args train: if True, train data, else test
+    """
+    def __init__(self, root, seq_len,leng=0): # pylint: disable=too-many-arguments
+        super().__init__(root)
+        self._seq_len = seq_len
+        self.leng=leng
+
+    def _get_data(self, data, seq_index):
+        obs_data = data['observations'][seq_index:seq_index + self._seq_len + 1]
+        # obs_data = self._transform(obs_data.astype(np.float32))
+        obs, next_obs = obs_data[:-1], obs_data[1:]
+        action = data['actions'][seq_index+1:seq_index + self._seq_len + 1]
+        action = action.astype(np.float32)
+        safes = data['labels'][seq_index + self._seq_len ]
+        # reward, terminal = [data[key][seq_index+1:
+        #                               seq_index + self._seq_len + 1].astype(np.float32)
+        #                     for key in ('rewards', 'terminals')]
+        # data is given in the form
+        # (obs, action, reward, terminal, next_obs)
+        return obs,next_obs #, terminal,
+
+    def _data_per_sequence(self, data_length):
+        return data_length - self._seq_len
+
+
+class RolloutObservationDataset(_RolloutDataset): # pylint: disable=too-few-public-methods
     """ Encapsulates rollouts.
 
     Rollouts should be stored in subdirs of the root directory, in the form of npz files,
@@ -279,43 +210,4 @@ class RolloutObservationSafeDataset(_RolloutDataset): # pylint: disable=too-few-
         return data_length
 
     def _get_data(self, data, seq_index):
-        safes=data['labels'][seq_index]
-        safe_pos = np.where(safes == 1)
-        if len(safe_pos[0]) == 0:
-            safe_pos = [[21]]
-        return (data['observations'][seq_index],safe_pos[0][-1],data['actions'][seq_index])
-
-
-
-class ObsSafeTest(_RolloutDataset): # pylint: disable=too-few-public-methods
-    """ Encapsulates rollouts.
-
-    Rollouts should be stored in subdirs of the root directory, in the form of npz files,
-    each containing a dictionary with the keys:
-        - observations: (rollout_len, *obs_shape)
-        - actions: (rollout_len, action_size)
-        - rewards: (rollout_len,)
-        - terminals: (rollout_len,), boolean
-
-     As the dataset is too big to be entirely stored in rams, only chunks of it
-     are stored, consisting of a constant number of files (determined by the
-     buffer_size parameter).  Once built, buffers must be loaded with the
-     load_next_buffer method.
-
-    Data are then provided in the form of images
-
-    :args root: root directory of data sequences
-    :args seq_len: number of timesteps extracted from each rollout
-    :args transform: transformation of the observations
-    :args train: if True, train data, else test
-    """
-    def _data_per_sequence(self, data_length):
-        return data_length
-
-    def _get_data(self, data, seq_index):
-        safes=data['labels'][seq_index]
-        safe_pos = np.where(safes == 1)
-        if len(safe_pos[0]) == 0:
-            safe_pos = [[21]]
-        return (data['observations'][seq_index],safe_pos[0][-1],data['actions'][seq_index],safes)
-
+        return (data['observations'][seq_index],data['labels'][seq_index][self.leng],data['actions'][seq_index])

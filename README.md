@@ -62,6 +62,66 @@ python CartPole/evaluator/train.py  --log="CartPole/evaluator/logs/" --train="Ca
 ```
 
 ## VAE training
+
+For training a VAE without the safety loss:
+
 ```bash
 python RacingCar/vae/train_unsafe_vae.py --log="RacingCar/vae/unsafe/" --train="RacingCar/data/train/" --test="RacingCar/data/test/" --eva="RacingCar/models/eva.tar"
 ```
+
+For training a VAE with the safety loss:
+
+```bash
+python RacingCar/vae/train_safe_vae.py --log="RacingCar/vae/safe/" --train="RacingCar/data/train/" --test="RacingCar/data/test/" --eva="RacingCar/models/eva.tar"
+```
+
+For training VAEs for the cart pole, just replace the path of training and test data
+
+
+## Monolithic predictor training
+
+For training the predictor using a CNN architecture(controller independent):
+
+
+```bash
+python MonoCnn/monoInd.py  --train="RacingCar/data/train/" --test="RacingCar/data/test/" --save="RacingCar/models/" --epochs=10 --steps=9 --task=1
+```
+
+
+epochs means the maximum training epoch, steps means the horizon range [0,steps] and task 1 is racing car and task 2 is cart pole (for racing cars, step is ten times than the real value)
+
+To train a controller-specific ones:
+
+```bash
+python MonoCnn/monoCsp.py  --train="RacingCar/data/train/controller_1/" --test="RacingCar/data/test/controller_1/" --save="RacingCar/models/" --epochs=10 --steps=9 --task=1
+```
+
+To train an LSTM predictor:
+
+```bash
+python MonoLstm/monoInd.py  --train="RacingCar/data/train/" --test="RacingCar/data/test/" --save="RacingCar/models/" --epochs=10 --steps=9 --task=1 --vae="MonoLstm/safe_vae_best.tar"
+```
+
+```bash
+python MonoLstm/monoCsp.py  --train="RacingCar/data/train/controller_1/" --test="RacingCar/data/test/controller_1/" --save="RacingCar/models/" --epochs=10 --steps=9 --task=1 --vae="MonoLstm/safe_vae_best.tar"
+```
+
+
+## Composite predictors
+
+To train an image (conv-lstm) predictor:
+
+```bash
+python CompImg/train.py  --train=TRAIN_PATH --test=TEST_PATH
+```
+
+To train a latnet  predictor:
+
+```bash
+python CompLat/train.py  --train=TRAIN_PATH --test=TEST_PATH
+```
+
+## Conformal calibration
+
+
+

@@ -26,7 +26,7 @@ import warnings
 import matplotlib.pyplot as plt
 import pandas as pd
 from bisect import bisect
-from myloader import RolloutObservationDataset
+from randomloader import RolloutObservationDataset
 def loss_function(recon_x, x, mu, logsigma):
     """ VAE loss function """
     BCE = F.mse_loss(recon_x, x, reduction='sum' )
@@ -66,37 +66,26 @@ class EvaNet(nn.Module):
         x=self.soft(x)
         return x
 def main(logdir,task):
-
     device="cuda"
     parser = argparse.ArgumentParser(description='VAE Trainer')
-    #--train="/home/UFAD/z.mao/01dataset/thread_2/" --test="/home/UFAD/z.mao/013dataset/thread_2/"
-    # parser.add_argument('--batch-size', type=int, default=32, metavar='N',
-    #                     help='input batch size for training (default: 32)')
-    # parser.add_argument('--epochs', type=int, default=1000, metavar='N',
-    #                     help='number of epochs to train (default: 1000)')
-    # parser.add_argument('--logdir', type=str, default='log3', help='Directory where results are logged')
-    # parser.add_argument('--noreload', action='store_true',
-    #                     help='Best model is not reloaded if specified')
-    # parser.add_argument('--nosamples', action='store_true',
-    #                     help='Does not save samples during training if specified')
-    #--train="/home/UFAD/z.mao/01dataset/thread_2/" --test="/home/UFAD/z.mao/013dataset/thread_2/"
 
-    parser.add_argument('--train', default="/home/mao/23Summer/code/Cali-predictors/RacingCar/data/train",
-                        help='Best model is not reloaded if specified')
-    parser.add_argument('--test',default="/home/mao/23Summer/code/Cali-predictors/RacingCar/data/train",
-                        help='Does not save samples during training if specified')
+    parser.add_argument('--train', default="/home/mao/23Summer/code/Cali-predictors/RacingCar/data/test/",
+                        help='training dataset path')
+    parser.add_argument('--test',default="/home/mao/23Summer/code/Cali-predictors/RacingCar/data/test/",
+                        help='test dataset path')
     parser.add_argument('--log',default="logs/"+"safeVae" + "/",
                         help='log path')
-    parser.add_argument('--eva',default="/home/mao/23Summer/code/Cali-predictors/RacingCar/models/eva.tar",
+    parser.add_argument('--eva',default="../models/eva.tar",
                         help='evaluator path')
 
     args = parser.parse_args()
-
+    logdir=args.log
+    eva_path=args.eva
     train_path=args.train
     test_path=args.test
     batch_size=64
     cur_best = None
-    vae_dir = join(logdir, task)
+    vae_dir = logdir
     if not exists(vae_dir):
         mkdir(vae_dir)
         mkdir(join(vae_dir, 'samples'))
@@ -110,9 +99,8 @@ def main(logdir,task):
     net = EvaNet()
 
     net = net.to(device)
-    best = torch.load("/home/mao/23Summer/code/Cali-predictors/RacingCar/models/eva.tar")
+    best = torch.load(eva_path)
     net.load_state_dict(best["state_dict"])
-
     # net = Net()
 
     model = model.to(device)
@@ -169,7 +157,7 @@ def main(logdir,task):
             inputs = inputs.to(device)
             labels = labels.to(device)
 
-            recon_batch, mu, logvar = model(inputs.unsqueeze(1))
+            recon_batch, mu, logvar ,x= model(inputs.unsqueeze(1))
             predict_label=net(recon_batch)
             loss = loss_function(recon_batch, inputs.unsqueeze(1), mu, logvar)
             loss2 = lf2(predict_label, labels)
@@ -215,7 +203,7 @@ def main(logdir,task):
                 inputs = inputs.float()
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                recon_batch, mu, logvar = model(inputs)
+                recon_batch, mu, logvar,x = model(inputs)
                 predict_label=net(recon_batch)
                 _, predicted = torch.max(predict_label.data, 1)
                 correct += (predicted == labels).sum().item()
@@ -279,7 +267,7 @@ def main(logdir,task):
                     inputs = Variable(inputs.unsqueeze(1))
                     inputs = inputs.float()
                     inputs = inputs.to(device)
-                    recon_batch, mu, logvar = model(inputs)
+                    recon_batch, mu, logvar,x = model(inputs)
                     #
                     # data = data.to(device)
                     # recon_batch, mu, logvar = model(data.float())

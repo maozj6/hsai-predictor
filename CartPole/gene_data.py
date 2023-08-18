@@ -176,7 +176,7 @@ if __name__ == '__main__':
                     labels.append(recording_safe[big_i + small_i])
                     small_i = small_i + 1
                 recording_label.append(labels)
-            np.savez_compressed(outdir + "/" + str(npz_guard) + ".npz", obs=recording_obs,
+            np.savez_compressed(outdir + "/" + str(npz_guard) + ".npz", obs=recording_obs,imgs=recording_obs,
                                 action=recording_action, safe=recording_safe,label=recording_label,
                                )
             npz_guard =npz_guard+1

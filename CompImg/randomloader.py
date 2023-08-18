@@ -71,7 +71,8 @@ class _RolloutDataset(torch.utils.data.Dataset): # pylint: disable=too-few-publi
         # binary search through cum_size
         while True:
             number=np.random.randint(0,self._cum_size[-1])
-
+            if i==0:
+                print(number)
             i=number
             file_index = bisect(self._cum_size, i) - 1
             seq_index = i - self._cum_size[file_index]
