@@ -4,7 +4,13 @@
 
 **Calibrated Prediction of Safety Chances for Image-Controlled Autonomy**
 
-This is the code for the paper: "How Safe Am I Given What I See?  Calibrated Prediction of Safety Chances for Image-Controlled Autonomy"
+This is the code for paper: "How Safe Am I Given What I See?  Calibrated Prediction of Safety Chances for Image-Controlled Autonomy". This repository contains the following: 
+* The DQN controller training code
+* Trained controllers for the racing car and the cart pole
+* Data generation code
+* Training code for all of our evaluators, autoencoders, forecasters, and predictors
+* Conformal calibration code 
+
 
 ## Prerequisites
 
