@@ -66,28 +66,25 @@ if __name__ == '__main__':
     device="cuda"
     print(device)
     batchsize=1
-    parser = argparse.ArgumentParser(description='VAE Trainer')
-    # parser.add_argument('--batch-size', type=int, default=32, metavar='N',
-    #                     help='input batch size for training (default: 32)')
-    # parser.add_argument('--epochs', type=int, default=1000, metavar='N',
-    #                     help='number of epochs to train (default: 1000)')
-    # parser.add_argument('--logdir', type=str, default='log3', help='Directory where results are logged')
-    # parser.add_argument('--noreload', action='store_true',
-    #                     help='Best model is not reloaded if specified')
-    # parser.add_argument('--nosamples', action='store_true',
-    #                     help='Does not save samples during training if specified')
-    #--train="/home/UFAD/z.mao/01dataset/thread_2/" --test="/home/UFAD/z.mao/013dataset/thread_2/"
+    parser = argparse.ArgumentParser(description='test')
 
-    parser.add_argument('--train', default="/home/mao/23Spring/cars/half_pre/01dataset/",
-                        help='Best model is not reloaded if specified')
-    parser.add_argument('--test',default="/home/mao/23Spring/cars/half_pre/013dataset/",
-                        help='Does not save samples during training if specified')
-
-
+    parser.add_argument('--test',)
+    parser.add_argument('--eva',)
+    parser.add_argument('--vae',)
+    parser.add_argument('--rnn',)
+    args = parser.parse_args()
     args = parser.parse_args()
 
+    test_path=args.test
+    evapath=args.eva
+    vaepath=args.vae
+    rnnpath=args.rnn
 
-    best=torch.load("models/best.tar")
+
+
+
+
+    best=torch.load(evapath)
     correct=0
     total=0
     net = EvaNet()
@@ -100,7 +97,7 @@ if __name__ == '__main__':
 
 
     vae = VAE(1, 32).to(device)
-    best = torch.load("safe_vae_best.tar")
+    best = torch.load(vaepath)
     vae.load_state_dict(best["state_dict"])
 
 
@@ -111,7 +108,7 @@ if __name__ == '__main__':
     train_path=args.train
     test_path=args.test
     rnn=latent_lstm()
-    bestrnn = torch.load("/home/mao/23Summer/code/racing-car/lat-lstm/thr2/action-checkpoint.tar")
+    bestrnn = torch.load(rnnpath)
     rnn.load_state_dict(bestrnn["state_dict"])
 
     # ins=torch.rand((15,64,32))

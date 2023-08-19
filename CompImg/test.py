@@ -48,13 +48,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='VAE Trainer')
 
     parser.add_argument('--test', )
+    parser.add_argument('--eva', )
+
     args = parser.parse_args()
     test_path=args.test
+    evapath=args.eva
+
     test_dataset=RolloutSequenceDataset(test_path,seq_len=10)
     test_dataset.load_next_buffer()
 
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True,drop_last = True)
-    best=torch.load("models/best.tar")
+    best=torch.load(evapath)
     correct=0
     total=0
     net = EvaNet()

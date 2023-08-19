@@ -64,14 +64,14 @@ class EvaNet(nn.Module):
         x=self.soft(x)
         return x
 
-def main(step):
+def main(step,test_path,evapath,rnnpath,vaepath):
 
 
     agent = CarRacingDQNAgent(epsilon=0)  # Set epsilon to 0 to ensure all actions are instructed by the agent
     agent.load("trial_400.h5")
 
 
-    best = torch.load("models/best.tar")
+    best = torch.load(evapath)
     correct = 0
     total = 0
     net = EvaNet()
@@ -82,25 +82,19 @@ def main(step):
     test_trues = []
 
     vae = VAE(1, 32).to(device)
-    best = torch.load("safe_vae_best.tar")
+    best = torch.load(vaepath)
     vae.load_state_dict(best["state_dict"])
 
     vae.eval()
 
     decoder = vae.decoder
-
-    train_path = args.train
-    test_path = args.test
+    #
+    # train_path = args.train
+    # test_path = args.test
     rnn = latent_lstm()
-    bestrnn = torch.load("thr2/action-checkpoint.tar")
+    bestrnn = torch.load(rnnpath)
     rnn.load_state_dict(bestrnn["state_dict"])
 
-    # ins=torch.rand((15,64,32))
-    # acts=torch.rand((15,64,3))
-    #
-    # out=rnn(ins,acts)
-    #
-    # print("end")
 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(rnn.parameters(), lr=0.001)
@@ -238,28 +232,21 @@ def main(step):
 
 if __name__ == '__main__':
 
-
-
     device="cuda"
     print(device)
     batchsize=1
-    parser = argparse.ArgumentParser(description='VAE Trainer')
-    # parser.add_argument('--batch-size', type=int, default=32, metavar='N',
-    #                     help='input batch size for training (default: 32)')
-    # parser.add_argument('--epochs', type=int, default=1000, metavar='N',
-    #                     help='number of epochs to train (default: 1000)')
-    # parser.add_argument('--logdir', type=str, default='log3', help='Directory where results are logged')
-    # parser.add_argument('--noreload', action='store_true',
-    #                     help='Best model is not reloaded if specified')
-    # parser.add_argument('--nosamples', action='store_true',
-    #                     help='Does not save samples during training if specified')
-    #--train="/home/UFAD/z.mao/01dataset/thread_2/" --test="/home/UFAD/z.mao/013dataset/thread_2/"
+    parser = argparse.ArgumentParser(description='test')
 
-    parser.add_argument('--train', default="/home/mao/23Spring/cars/half_pre/01dataset/thread_2/",
-                        help='Best model is not reloaded if specified')
-    parser.add_argument('--test',default="/home/mao/23Spring/cars/half_pre/013dataset/thread_2/",
-                        help='Does not save samples during training if specified')
+    parser.add_argument('--test',)
+    parser.add_argument('--eva',)
+    parser.add_argument('--vae',)
+    parser.add_argument('--rnn',)
+    args = parser.parse_args()
 
+    test_path=args.test
+    eva=args.eva
+    vae=args.vae
+    rnn=args.rnn
 
     accs=[]
     f1s=[]
@@ -272,7 +259,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     for i in range(1,21):
-        acc,f1,precision,recall,sfts,lbls,conf=main(i)
+        acc,f1,precision,recall,sfts,lbls,conf=main(i,test_path,eva,vae,rnn)
         confs.append(conf)
         accs.append(acc)
         f1s.append(f1)
@@ -286,9 +273,4 @@ if __name__ == '__main__':
         print(recs)
 
     np.savez_compressed("test-compo-lstm-action-con3.npz", accs=accs, f1s=f1s, precs=precs, recs=recs, sft=y_sft, lbl=y_lbl,conf=confs)
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
-#[0.9803974221267454, 0.9709653598281418, 0.9579585123523093, 0.9103786251342643, 0.9177128088077336,
-# 0.8970696831364124, 0.8633693609022557, 0.8097643662728249, 0.8073811761546724, 0.7379330021482277,
-# 0.6771448711063373, 0.6022254296455424, 0.6012352309344791, 0.5522120032223415]
 

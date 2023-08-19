@@ -115,13 +115,46 @@ To train an image (conv-lstm) predictor:
 python CompImg/train.py  --train=TRAIN_PATH --test=TEST_PATH
 ```
 
-To train a latnet  predictor:
+To test an image (conv-lstm) predictor:
 
 ```bash
-python CompLat/train.py  --train=TRAIN_PATH --test=TEST_PATH
+python CompImg/test.py  --test=TEST_PATH --eva=EVALUATOR_PATH
 ```
+
+To train a latent  predictor (controller-independent):
+
+```bash
+python CompLat/trainInd.py  --train=TRAIN_PATH --test=TEST_PATH --vae=VAE_PATH 
+```
+
+To train a latent  predictor (controller-specific):
+
+
+```bash
+python CompLat/trainCsp.py  --train=TRAIN_PATH --test=TEST_PATH  --vae=VAE_PATH 
+```
+
+To test a latent predictor (controller-independent)
+
+```bash
+python CompLat/testInd.py  --test=TEST_PATH --eva=EVALUATOR_PATH --vae=VAE_PATH --rnn_SAVED_MODEL_PATH
+```
+
+To test a latent predictor (controller-specific)
+
+
+```bash
+python CompLat/testCsp.py  --test=TEST_PATH --eva=EVALUATOR_PATH --vae=VAE_PATH --rnn_SAVED_MODEL_PATH
+```
+
 
 ## Conformal calibration
 
+After the test, the file will save the prediction results, especially the softmax scores and the safety labels into a npz file.
+
+
+```bash
+python ConformalCali/conformal-cali.py  --valid=VALID_RESULT --test=TEST_RESULT
+```
 
 

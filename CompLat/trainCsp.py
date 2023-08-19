@@ -46,17 +46,23 @@ if __name__ == '__main__':
     device="cuda"
     print(device)
     batchsize=128
-    parser = argparse.ArgumentParser(description='VAE Trainer')
+    parser = argparse.ArgumentParser(description='train')
 
 
     parser.add_argument('--train',
                        )
     parser.add_argument('--test',)
 
+
+    parser.add_argument('--vae',)
+    parser.add_argument('--rnn',)
     args = parser.parse_args()
 
+    vaepath=args.vae
+
+
     vae = VAE(1, 32).to(device)
-    best = torch.load("safe_vae_best.tar")
+    best = torch.load(vaepath)
     vae.load_state_dict(best["state_dict"])
 
 

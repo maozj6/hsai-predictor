@@ -50,11 +50,18 @@ if __name__ == '__main__':
 
     parser.add_argument('--train',)
     parser.add_argument('--test',)
+    parser.add_argument('--vae',)
 
     args = parser.parse_args()
 
+
+
+    train_path=args.train
+    test_path=args.test
+    vaepath=args.vae
+
     vae = VAE(1, 32).to(device)
-    best = torch.load("safe_vae_best.tar")
+    best = torch.load(vaepath)
     vae.load_state_dict(best["state_dict"])
 
 
@@ -62,8 +69,6 @@ if __name__ == '__main__':
 
     decoder=vae.decoder
 
-    train_path=args.train
-    test_path=args.test
     rnn=latent_lstm()
     cur_best = None
 
