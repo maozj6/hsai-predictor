@@ -68,23 +68,22 @@ def main(step,testpath,validpath):
         all_ece.append(ece.measure(prediction, validation_set_gt))
         all_mce.append(mce.measure(prediction, validation_set_gt))
     x = [0, 1, 2, 3, 4, 5, 6, 7]
-    # plt.plot(x, all_ece, x, all_mce)  # 此时x不可省略
-    plt.plot(x, all_ece, )  # 此时x不可省略
-
+    # plt.plot(x, all_ece, x, all_mce)
+    plt.plot(x, all_ece, )
     plt.show()
     print(all_ece)
     print(all_mce)
     bins2 = np.linspace(0.1, 1, bins)
 
     diagram = ReliabilityDiagram(bins=bins, title_suffix="default")
-    diagram.plot(validation_set_sm, validation_set_gt, filename="/home/mao/23Summer/code/racing-car/balanced20cnn/thr2-cali/"+str(step)+"test"+str(all_ece[0])+".png")
+    diagram.plot(validation_set_sm, validation_set_gt, filename="./"+str(step)+"test"+str(all_ece[0])+".png")
 
     method_num=np.argmin(all_ece)
     print(method_num)
 
     diagram = ReliabilityDiagram(bins=bins, title_suffix=models[method_num][0])
     prediction=predictions[method_num]
-    diagram.plot(prediction, validation_set_gt, filename="/home/mao/23Summer/code/racing-car/balanced20cnn/thr2-cali/"+str(step)+"step"+str(method_num)+"-"+str(all_ece[method_num]) + ".png")
+    diagram.plot(prediction, validation_set_gt, filename="./"+str(step)+"step"+str(method_num)+"-"+str(all_ece[method_num]) + ".png")
 
     binned = np.digitize(prediction, bins2)
     dset = []
@@ -121,8 +120,19 @@ def main(step,testpath,validpath):
 
 
 if __name__ == '__main__':
-    testpath="rand-test-mono-cnn-action.npz"
-    validpath="rand-valid-mono-cnn-action.npz"
+    import argparse
+
+    parser = argparse.ArgumentParser(description='conformal calibration')
+    parser.add_argument('--valid',
+                       )
+    parser.add_argument('--test',)
+
+    args = parser.parse_args()
+
+    valid_path=args.valid
+    test_path=args.test
+    testpath=test_path
+    validpath=valid_path
     ece=[]
     ece2=[]
     mce=[]
