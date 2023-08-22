@@ -4,7 +4,13 @@
 
 **Calibrated Prediction of Safety Chances for Image-Controlled Autonomy**
 
-This is the code for the paper: "How Safe Am I Given What I See?  Calibrated Prediction of Safety Chances for Image-Controlled Autonomy"
+This is the code for paper: "How Safe Am I Given What I See?  Calibrated Prediction of Safety Chances for Image-Controlled Autonomy". This repository contains the following: 
+* The DQN controller training code
+* Trained controllers for the racing car and the cart pole
+* Data generation code
+* Training code for all of our evaluators, autoencoders, forecasters, and predictors
+* Conformal calibration code 
+
 
 ## Prerequisites
 
@@ -62,6 +68,99 @@ python CartPole/evaluator/train.py  --log="CartPole/evaluator/logs/" --train="Ca
 ```
 
 ## VAE training
+
+For training a VAE without the safety loss:
+
 ```bash
 python RacingCar/vae/train_unsafe_vae.py --log="RacingCar/vae/unsafe/" --train="RacingCar/data/train/" --test="RacingCar/data/test/" --eva="RacingCar/models/eva.tar"
 ```
+
+For training a VAE with the safety loss:
+
+```bash
+python RacingCar/vae/train_safe_vae.py --log="RacingCar/vae/safe/" --train="RacingCar/data/train/" --test="RacingCar/data/test/" --eva="RacingCar/models/eva.tar"
+```
+
+For training VAEs for the cart pole, just replace the path of training and test data
+
+
+## Monolithic predictor training
+
+For training the predictor using a CNN architecture(controller independent):
+
+
+```bash
+python MonoCnn/monoInd.py  --train="RacingCar/data/train/" --test="RacingCar/data/test/" --save="RacingCar/models/" --epochs=10 --steps=9 --task=1
+```
+
+
+epochs means the maximum training epoch, steps means the horizon range [0,steps] and task 1 is racing car and task 2 is cart pole (for racing cars, step is ten times than the real value)
+
+To train a controller-specific ones:
+
+```bash
+python MonoCnn/monoCsp.py  --train="RacingCar/data/train/controller_1/" --test="RacingCar/data/test/controller_1/" --save="RacingCar/models/" --epochs=10 --steps=9 --task=1
+```
+
+To train an LSTM predictor:
+
+```bash
+python MonoLstm/monoInd.py  --train="RacingCar/data/train/" --test="RacingCar/data/test/" --save="RacingCar/models/" --epochs=10 --steps=9 --task=1 --vae="MonoLstm/safe_vae_best.tar"
+```
+
+```bash
+python MonoLstm/monoCsp.py  --train="RacingCar/data/train/controller_1/" --test="RacingCar/data/test/controller_1/" --save="RacingCar/models/" --epochs=10 --steps=9 --task=1 --vae="MonoLstm/safe_vae_best.tar"
+```
+
+
+## Composite predictors
+
+To train an image (conv-lstm) predictor:
+
+```bash
+python CompImg/train.py  --train=TRAIN_PATH --test=TEST_PATH
+```
+
+To test an image (conv-lstm) predictor:
+
+```bash
+python CompImg/test.py  --test=TEST_PATH --eva=EVALUATOR_PATH
+```
+
+To train a latent  predictor (controller-independent):
+
+```bash
+python CompLat/trainInd.py  --train=TRAIN_PATH --test=TEST_PATH --vae=VAE_PATH 
+```
+
+To train a latent  predictor (controller-specific):
+
+
+```bash
+python CompLat/trainCsp.py  --train=TRAIN_PATH --test=TEST_PATH  --vae=VAE_PATH 
+```
+
+To test a latent predictor (controller-independent)
+
+```bash
+python CompLat/testInd.py  --test=TEST_PATH --eva=EVALUATOR_PATH --vae=VAE_PATH --rnn_SAVED_MODEL_PATH
+```
+
+To test a latent predictor (controller-specific)
+
+
+```bash
+python CompLat/testCsp.py  --test=TEST_PATH --eva=EVALUATOR_PATH --vae=VAE_PATH --rnn_SAVED_MODEL_PATH
+```
+
+
+## Conformal calibration
+
+After the test, the file will save the prediction results, especially the softmax scores and the safety labels into a npz file.
+
+
+```bash
+python ConformalCali/conformal-cali.py  --valid=VALID_RESULT --test=TEST_RESULT
+```
+
+

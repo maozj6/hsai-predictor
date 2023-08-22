@@ -1,14 +1,9 @@
-import math
 import torch
 from torch.utils.data import DataLoader
-from torchvision import transforms, datasets
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from torch.utils.data import Dataset
-import numpy as np
-from bisect import bisect
 from tqdm import tqdm
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from learning import EarlyStopping
@@ -16,16 +11,10 @@ from vae import VAE
 from torchvision.utils import save_image
 import argparse
 
-import os
 from os.path import join, exists
 from os import mkdir
 from sklearn.metrics import confusion_matrix
-from PIL import Image
-import cv2
-import warnings
-import matplotlib.pyplot as plt
 import pandas as pd
-from bisect import bisect
 from randomloader import RolloutObservationDataset
 def loss_function(recon_x, x, mu, logsigma):
     """ VAE loss function """
@@ -70,9 +59,9 @@ def main():
     device="cuda"
     parser = argparse.ArgumentParser(description='VAE Trainer')
 
-    parser.add_argument('--train', default="/home/mao/23Summer/code/vision-cartpole-dqn/02dataset/",
+    parser.add_argument('--train', default="/home/mao/23Summer/code/Cali-predictors/RacingCar/data/test/",
                         help='training dataset path')
-    parser.add_argument('--test',default="/home/mao/23Summer/code/vision-cartpole-dqn/023dataset/",
+    parser.add_argument('--test',default="/home/mao/23Summer/code/Cali-predictors/RacingCar/data/test/",
                         help='test dataset path')
     parser.add_argument('--log',default="logs/"+"safeVae" + "/",
                         help='log path')
@@ -159,7 +148,7 @@ def main():
             inputs = inputs.to(device)
             labels = labels.to(device)
 
-            recon_batch, mu, logvar = model(inputs.unsqueeze(1))
+            recon_batch, mu, logvar,x = model(inputs.unsqueeze(1))
             predict_label = net(recon_batch)
             loss = loss_function(recon_batch, inputs.unsqueeze(1), mu, logvar)
             loss2 = lf2(predict_label, labels)
@@ -207,7 +196,7 @@ def main():
                 inputs = inputs.float()
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                recon_batch, mu, logvar = model(inputs)
+                recon_batch, mu, logvar,x = model(inputs)
                 predict_label = net(recon_batch)
                 _, predicted = torch.max(predict_label.data, 1)
                 correct += (predicted == labels).sum().item()
@@ -272,7 +261,7 @@ def main():
                     inputs = Variable(inputs.unsqueeze(1))
                     inputs = inputs.float()
                     inputs = inputs.to(device)
-                    recon_batch, mu, logvar = model(inputs)
+                    recon_batch, mu, logvar,x = model(inputs)
                     #
                     # data = data.to(device)
                     # recon_batch, mu, logvar = model(data.float())
@@ -284,8 +273,6 @@ def main():
     print('finished training!')
     print("end")
 if __name__ == '__main__':
-
-    import logging
 
     main()
 
