@@ -1,0 +1,172 @@
+import numpy as np
+from netcal.scaling import TemperatureScaling
+from netcal.metrics import ECE
+from netcal.binning import HistogramBinning, IsotonicRegression, ENIR, BBQ
+from netcal.scaling import LogisticCalibration, TemperatureScaling, BetaCalibration
+from netcal.metrics import ACE, ECE, MCE
+from netcal.presentation import ReliabilityDiagram
+import matplotlib.pyplot as plt
+import random
+
+def calculate_brier_score(y_true, y_prob):
+
+    y_true = np.array(y_true)
+    y_prob = np.array(y_prob)
+    if len(y_true) != len(y_prob):
+        raise ValueError("Input arrays must have the same length.")
+    if np.any(y_prob < 0) or np.any(y_prob > 1):
+        raise ValueError("Predicted probabilities must be between 0 and 1.")
+    brier_score = np.mean((y_true - y_prob) ** 2)
+    return brier_score
+def main( label, softmax, mvalue, nvalue):
+
+
+    bounds = []
+    br2s=[]
+    br1s=[]
+    predictionset= softmax
+    predictionsetgt = label
+    calisft=predictionset
+    num_groups = 10
+    sorted_indicesvali = np.argsort(calisft)
+    success = np.zeros((10))
+    groupsvali = np.array_split(sorted_indicesvali, num_groups)
+    for i in range(10):
+        random_numbers = random.sample(range(len(groupsvali[i])), len(groupsvali[i]))
+        numbers = len(groupsvali[i])
+        split_point = int((numbers) * 0.5)
+        split_point2 = int((numbers) * 0.9)
+        list1 = random_numbers[:split_point]
+        list2 = random_numbers[split_point:split_point2]
+        list3 = random_numbers[split_point2:]
+
+        list1trans = [groupsvali[i][j] for j in list1]
+        list2trans = [groupsvali[i][j] for j in list2]
+        list3trans = [groupsvali[i][j] for j in list3]
+
+        calisetsft = [predictionset[j] for j in list1trans]
+        calisetgt = [predictionsetgt[j] for j in list1trans]
+
+        msetsft = [predictionset[j] for j in list2trans]
+        msetgt = [predictionsetgt[j] for j in list2trans]
+        mp1setsft = [predictionset[j] for j in list3trans]
+        mp1setgt = [predictionsetgt[j] for j in list3trans]
+        hist_bins = 20
+
+        #----cali:
+        histogram = HistogramBinning(hist_bins)
+        iso = IsotonicRegression()
+        bbq = BBQ()
+        enir = ENIR()
+        method = 'mle'
+
+        lr_calibration = LogisticCalibration(detection=False, method=method)
+        temperature = TemperatureScaling(detection=False, method=method)
+        betacal = BetaCalibration(detection=False, method=method)
+
+        models = [("hist", histogram),
+                  ("iso", iso),
+                  ("bbq", bbq),
+                  # ("enir", enir),
+                  ("lr", lr_calibration),
+                  ("temperature", temperature),
+                  ("beta", betacal)]
+        ace = ACE(1)
+        ece = ECE(1)
+        mce = MCE(1)
+        validation_set_sm = np.array(msetsft)
+        validation_set_gt = np.array(msetgt)
+        predictions = []
+        all_ace = [ace.measure(validation_set_sm, validation_set_gt)]
+        all_ece = [ece.measure(validation_set_sm, validation_set_gt)]
+        all_mce = [mce.measure(validation_set_sm, validation_set_gt)]
+        for model in models:
+            name, instance = model
+            print("Build %s model" % name)
+            instance.fit(np.array(calisetsft), np.array(calisetgt))
+
+        for model in models:
+            _, instance = model
+            prediction = instance.transform(validation_set_sm)
+            predictions.append(prediction)
+
+            all_ace.append(ace.measure(prediction, validation_set_gt))
+            all_ece.append(ece.measure(prediction, validation_set_gt))
+            all_mce.append(mce.measure(prediction, validation_set_gt))
+        print(all_ece)
+        min_value = min(all_ece)
+
+        min_index = all_ece.index(min_value)
+        instance = models[min_index-1][1]
+        msetcalied = instance.transform(validation_set_sm)
+        mp1setcalied = instance.transform(np.array(mp1setsft))
+        breierscore2= calculate_brier_score(validation_set_gt, msetcalied)
+        breierscore1 = calculate_brier_score(validation_set_gt, validation_set_sm)
+        br1s.append(breierscore1)
+        br2s.append(breierscore2)
+        bound_number = int(0.95 * (100 + 1))+1
+        dsubset = []
+        for im in range(mvalue):
+            temp_cali = []
+            temp_gt = []
+            for jm in range(nvalue):
+                inumber = np.random.randint(0, len(msetcalied))
+                temp_cali.append(msetcalied[inumber])
+                temp_gt.append(msetgt[inumber])
+            temp_cali = np.array(temp_cali)
+            temp_gt = np.array(temp_gt)
+            mu_cali = np.mean(temp_cali)
+            mu_gt = np.mean(temp_gt)
+            dsubset.append(abs(mu_cali - mu_gt))
+        dsubset_np = np.array(dsubset)
+        dsubset_np = np.sort(dsubset_np)
+        bound = dsubset_np[bound_number]
+        bounds.append(bound)
+        for mp1i in range(mvalue):
+            tempmp1cali = []
+            tempmp1gt = []
+            for jm in range(nvalue):
+                inumber = np.random.randint(0, len(mp1setcalied))
+                tempmp1cali.append(mp1setcalied[inumber])
+                tempmp1gt.append(mp1setgt[inumber])
+            tempmp1cali = np.array(tempmp1cali)
+            tempmp1caligt = np.array(tempmp1gt)
+            mu_calimp1 = np.mean(tempmp1cali)
+            mu_gtmp1 = np.mean(tempmp1caligt)
+            if np.abs(mu_calimp1 - mu_gtmp1) < bound or np.abs(mu_calimp1 - mu_gtmp1) ==bound:
+                success[i] = success[i] + 1
+    br1mean_value = np.mean(br1s)
+    br1std_deviation = np.std(br1s)
+    br2mean_value = np.mean(br2s)
+    br2std_deviation = np.std(br2s)
+    bdmean_value = np.mean(bounds)
+    bdstd_deviation = np.std(bounds)
+    return br1mean_value,br1std_deviation,br2mean_value,br2std_deviation,bdmean_value,bdstd_deviation
+
+if __name__ == '__main__':
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Calibration')
+
+    parser.add_argument('--m', default=200, type=int,
+                        help='Conformal prediction sample amount')
+    parser.add_argument('--n',default=1000, type=int,
+                        help='Sample number')
+    parser.add_argument('--data', default="softmaxscores.npz", type=str,
+                        help='Saved softmax scores and labels')
+    parser.add_argument('--save', default="save.npz", type=str,
+                        help='Save path')
+    group=[]
+    args = parser.parse_args()
+
+    m=args.m
+    n=args.n
+    data =args.data
+    sft = data['sft']
+    lbl = data['safe']
+    #loop for steps
+    for i in range(len(sft)):
+        group.append(main( lbl[i], sft[i], m, n))
+        print("end")
+    np.savez_compressed(args.save, group=group)
