@@ -67,7 +67,7 @@ if __name__ == '__main__':
     optim = Adam(model.parameters(), lr=1e-4)
 
     # Binary Cross Entropy, target pixel values either 0 or 1
-    criterion = nn.BCELoss(reduction='sum')
+    criterion = nn.MSELoss()
     scheduler = ReduceLROnPlateau(optim, mode='min', factor=0.1, patience=5, verbose=True)
     earlystopping =EarlyStopping('min', patience=15)  # 关于 EarlyStopping 的代码可先看博客后面的内容
     num_epochs = 61
