@@ -161,7 +161,7 @@ After the test, the file will save the prediction results, especially the softma
 
 
 ```bash
-python ConformalCali/conformal-cali.py  --valid=VALID_RESULT --test=TEST_RESULT
+python ConformalCali/Cali-with-brier-score.py  --m=200 --n=1000 --data="sft.npz" --save="save.npz"
 ```
 
 
